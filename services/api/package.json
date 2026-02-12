@@ -10,7 +10,8 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "db:ensure-indexes": "ts-node src/scripts/ensure-indexes.ts"
   },
   "keywords": [],
   "author": "",
