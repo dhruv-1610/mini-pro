@@ -8,10 +8,12 @@ import { createDriveSchema } from '../validation/drive.validation';
 import { bookSchema, checkinSchema } from '../validation/booking.validation';
 import { donateSchema } from '../validation/donation.validation';
 import { impactSubmitSchema } from '../validation/impact.validation';
+import { createExpenseSchema } from '../validation/expense.validation';
 import * as driveService from '../services/drive.service';
 import * as bookingService from '../services/booking.service';
 import * as donationService from '../services/donation.service';
 import * as impactService from '../services/impact.service';
+import * as expenseService from '../services/expense.service';
 import { BadRequestError } from '../utils/errors';
 import { env } from '../config/env';
 
@@ -24,6 +26,21 @@ const donationLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: { message: 'Too many donation attempts, please try again later' } },
 });
+
+function uploadExpenseProof(req: Request, res: Response, next: NextFunction): void {
+  const single = upload.single('proof');
+  single(req, res, (err: unknown) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') return next(new BadRequestError('File too large'));
+      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        return next(new BadRequestError('Only image files (JPEG, PNG, GIF, WebP) are allowed'));
+      }
+      return next(new BadRequestError(err.message));
+    }
+    if (err) return next(err);
+    next();
+  });
+}
 
 function uploadImpactPhotos(req: Request, res: Response, next: NextFunction): void {
   const fields = upload.fields([
@@ -227,6 +244,47 @@ router.post(
       });
 
       res.status(201).json({ impact });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+// ── POST /api/drives/:driveId/expenses — Admin uploads expense ───────────────
+
+router.post(
+  '/:driveId/expenses',
+  authenticate,
+  authorize(['admin']),
+  uploadExpenseProof,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsed = createExpenseSchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw new BadRequestError(parsed.error.issues[0]?.message ?? 'Invalid input');
+      }
+
+      const fileError = (req as Request & { fileValidationError?: string }).fileValidationError;
+      if (fileError) {
+        throw new BadRequestError(fileError);
+      }
+
+      if (!req.file) {
+        throw new BadRequestError('Proof image is required');
+      }
+
+      const driveId = Array.isArray(req.params.driveId)
+        ? req.params.driveId[0]
+        : req.params.driveId;
+
+      const expense = await expenseService.createExpense({
+        driveId,
+        category: parsed.data.category,
+        amount: parsed.data.amount,
+        proofUrl: `/uploads/${req.file.filename}`,
+      });
+
+      res.status(201).json({ expense });
     } catch (error) {
       next(error);
     }

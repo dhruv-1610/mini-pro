@@ -28,7 +28,7 @@ function ensureFixtures(): { pngPath: string } {
 }
 
 async function getToken(role: 'user' | 'admin' = 'user'): Promise<string> {
-  const suffix = role === 'admin' ? 'admin-imp' : 'user-imp';
+  const suffix = role === 'admin' ? 'admin-exp' : 'user-exp';
   const email = `${suffix}@example.com`;
   const regRes = await request(app)
     .post('/auth/register')
@@ -61,7 +61,7 @@ function futureDate(daysFromNow: number): string {
 
 // ── Suite ──────────────────────────────────────────────────────────────────
 
-describe('Impact Measurement', () => {
+describe('Expense & Transparency Portal', () => {
   let userToken: string;
   let adminToken: string;
   let fixtures: { pngPath: string };
@@ -79,8 +79,8 @@ describe('Impact Measurement', () => {
   }, 30_000);
 
   beforeEach(async () => {
-    await Impact.deleteMany({});
     await Expense.deleteMany({});
+    await Impact.deleteMany({});
     await Attendance.deleteMany({});
     await Drive.deleteMany({});
     await Report.deleteMany({});
@@ -104,7 +104,7 @@ describe('Impact Measurement', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         reportId: verifiedReportId,
-        title: 'Impact Drive',
+        title: 'Expense Drive',
         date: futureDate(7),
         fundingGoal: 50000,
         requiredRoles: [{ role: 'Cleaner', capacity: 5 }],
@@ -121,8 +121,8 @@ describe('Impact Measurement', () => {
       fs.rmSync(UPLOAD_DIR, { recursive: true, force: true });
     }
     await User.deleteMany({});
-    await Impact.deleteMany({});
     await Expense.deleteMany({});
+    await Impact.deleteMany({});
     await Attendance.deleteMany({});
     await Drive.deleteMany({});
     await Report.deleteMany({});
@@ -131,82 +131,75 @@ describe('Impact Measurement', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // POST /api/drives/:driveId/impact
+  // POST /api/drives/:driveId/expenses
   // ═══════════════════════════════════════════════════════════════════════════
 
-  describe('POST /api/drives/:driveId/impact', () => {
-    it('should allow admin to submit impact successfully', async () => {
+  describe('POST /api/drives/:driveId/expenses', () => {
+    it('should allow admin to create expense successfully', async () => {
       const res = await request(app)
-        .post(`/api/drives/${driveId}/impact`)
+        .post(`/api/drives/${driveId}/expenses`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .field('wasteCollected', '50')
-        .field('areaCleaned', '200')
-        .field('workHours', '8')
-        .field('beforePhotos', '[]')
-        .field('afterPhotos', '[]')
-        .attach('beforePhotos', fixtures.pngPath)
-        .attach('afterPhotos', fixtures.pngPath);
+        .field('category', 'equipment')
+        .field('amount', '5000')
+        .attach('proof', fixtures.pngPath);
 
       expect(res.status).toBe(201);
-      expect(res.body.impact).toHaveProperty('_id');
-      expect(res.body.impact.wasteCollected).toBe(50);
-      expect(res.body.impact.areaCleaned).toBe(200);
-      expect(res.body.impact.workHours).toBe(8);
-      expect(res.body.impact.beforePhotos).toHaveLength(1);
-      expect(res.body.impact.afterPhotos).toHaveLength(1);
+      expect(res.body.expense).toHaveProperty('_id');
+      expect(res.body.expense.category).toBe('equipment');
+      expect(res.body.expense.amount).toBe(5000);
+      expect(res.body.expense.proofUrl).toMatch(/^\/uploads\//);
+      expect(res.body.expense.isVerified).toBe(false);
     });
 
     it('should reject non-admin with 403', async () => {
       const res = await request(app)
-        .post(`/api/drives/${driveId}/impact`)
+        .post(`/api/drives/${driveId}/expenses`)
         .set('Authorization', `Bearer ${userToken}`)
-        .send({
-          wasteCollected: 50,
-          areaCleaned: 200,
-          workHours: 8,
-        });
+        .send({ category: 'equipment', amount: 5000 });
 
       expect(res.status).toBe(403);
     });
+  });
 
-    it('should update drive status to completed and report status to cleaned', async () => {
-      await request(app)
-        .post(`/api/drives/${driveId}/impact`)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PATCH /api/expenses/:expenseId/verify
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('PATCH /api/expenses/:expenseId/verify', () => {
+    it('should allow admin to verify expense successfully', async () => {
+      const createRes = await request(app)
+        .post(`/api/drives/${driveId}/expenses`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .field('wasteCollected', '50')
-        .field('areaCleaned', '200')
-        .field('workHours', '8')
-        .attach('beforePhotos', fixtures.pngPath)
-        .attach('afterPhotos', fixtures.pngPath);
+        .field('category', 'transport')
+        .field('amount', '3000')
+        .attach('proof', fixtures.pngPath);
 
-      const drive = await Drive.findById(driveId);
-      expect(drive?.status).toBe('completed');
-
-      const report = await Report.findById(verifiedReportId);
-      expect(report?.status).toBe('cleaned');
-    });
-
-    it('should reject duplicate impact submission', async () => {
-      await request(app)
-        .post(`/api/drives/${driveId}/impact`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .field('wasteCollected', '50')
-        .field('areaCleaned', '200')
-        .field('workHours', '8')
-        .attach('beforePhotos', fixtures.pngPath)
-        .attach('afterPhotos', fixtures.pngPath);
+      const expenseId = createRes.body.expense._id as string;
 
       const res = await request(app)
-        .post(`/api/drives/${driveId}/impact`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .field('wasteCollected', '60')
-        .field('areaCleaned', '250')
-        .field('workHours', '9')
-        .attach('beforePhotos', fixtures.pngPath)
-        .attach('afterPhotos', fixtures.pngPath);
+        .patch(`/api/expenses/${expenseId}/verify`)
+        .set('Authorization', `Bearer ${adminToken}`);
 
-      expect(res.status).toBe(409);
-      expect(res.body.error.message).toMatch(/already|impact/i);
+      expect(res.status).toBe(200);
+      expect(res.body.expense.isVerified).toBe(true);
+      expect(res.body.expense.verifiedAt).toBeDefined();
+    });
+
+    it('should reject non-admin verification with 403', async () => {
+      const createRes = await request(app)
+        .post(`/api/drives/${driveId}/expenses`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('category', 'equipment')
+        .field('amount', '2000')
+        .attach('proof', fixtures.pngPath);
+
+      const expenseId = createRes.body.expense._id as string;
+
+      const res = await request(app)
+        .patch(`/api/expenses/${expenseId}/verify`)
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(403);
     });
   });
 
@@ -215,7 +208,44 @@ describe('Impact Measurement', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('GET /api/transparency/:driveId', () => {
-    it('should return correct totals for transparency endpoint', async () => {
+    it('should exclude unverified expenses from aggregation', async () => {
+      await request(app)
+        .post(`/api/drives/${driveId}/impact`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('wasteCollected', '50')
+        .field('areaCleaned', '200')
+        .field('workHours', '8')
+        .attach('beforePhotos', fixtures.pngPath)
+        .attach('afterPhotos', fixtures.pngPath);
+
+      await request(app)
+        .post(`/api/drives/${driveId}/expenses`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('category', 'equipment')
+        .field('amount', '5000')
+        .attach('proof', fixtures.pngPath);
+
+      const createRes = await request(app)
+        .post(`/api/drives/${driveId}/expenses`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('category', 'transport')
+        .field('amount', '3000')
+        .attach('proof', fixtures.pngPath);
+
+      await request(app)
+        .patch(`/api/expenses/${createRes.body.expense._id}/verify`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      const res = await request(app).get(`/api/transparency/${driveId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.categoryBreakdown).toBeDefined();
+      expect(res.body.categoryBreakdown.transport).toBe(3000);
+      expect(res.body.categoryBreakdown.equipment).toBeUndefined();
+      expect(res.body.totalVerifiedExpenses).toBe(3000);
+    });
+
+    it('should return correct aggregation totals', async () => {
       await Drive.updateOne({ _id: driveId }, { fundingRaised: 25000 });
 
       await request(app)
@@ -227,18 +257,37 @@ describe('Impact Measurement', () => {
         .attach('beforePhotos', fixtures.pngPath)
         .attach('afterPhotos', fixtures.pngPath);
 
+      const exp1 = await request(app)
+        .post(`/api/drives/${driveId}/expenses`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('category', 'equipment')
+        .field('amount', '10000')
+        .attach('proof', fixtures.pngPath);
+
+      const exp2 = await request(app)
+        .post(`/api/drives/${driveId}/expenses`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('category', 'refreshments')
+        .field('amount', '5000')
+        .attach('proof', fixtures.pngPath);
+
+      await request(app)
+        .patch(`/api/expenses/${exp1.body.expense._id}/verify`)
+        .set('Authorization', `Bearer ${adminToken}`);
+      await request(app)
+        .patch(`/api/expenses/${exp2.body.expense._id}/verify`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
       const res = await request(app).get(`/api/transparency/${driveId}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.driveId).toBe(driveId);
       expect(res.body.moneyCollected).toBe(25000);
-      expect(res.body.photos).toBeDefined();
-      expect(Array.isArray(res.body.photos.before)).toBe(true);
-      expect(Array.isArray(res.body.photos.after)).toBe(true);
-      expect(res.body.attendanceCount).toBe(0);
+      expect(res.body.totalVerifiedExpenses).toBe(15000);
+      expect(res.body.categoryBreakdown.equipment).toBe(10000);
+      expect(res.body.categoryBreakdown.refreshments).toBe(5000);
     });
 
-    it('should exclude unverified expenses from expenseBreakdown', async () => {
+    it('should return accurate category breakdown', async () => {
       await request(app)
         .post(`/api/drives/${driveId}/impact`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -248,62 +297,31 @@ describe('Impact Measurement', () => {
         .attach('beforePhotos', fixtures.pngPath)
         .attach('afterPhotos', fixtures.pngPath);
 
-      await Expense.create({
-        driveId,
-        category: 'equipment',
-        amount: 5000,
-        proofUrl: '/uploads/test1.jpg',
-        isVerified: false,
-      });
-      await Expense.create({
-        driveId,
-        category: 'transport',
-        amount: 3000,
-        proofUrl: '/uploads/test2.jpg',
-        isVerified: true,
-      });
+      const exp1 = await request(app)
+        .post(`/api/drives/${driveId}/expenses`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('category', 'misc')
+        .field('amount', '2500')
+        .attach('proof', fixtures.pngPath);
+
+      const exp2 = await request(app)
+        .post(`/api/drives/${driveId}/expenses`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('category', 'misc')
+        .field('amount', '3500')
+        .attach('proof', fixtures.pngPath);
+
+      await request(app)
+        .patch(`/api/expenses/${exp1.body.expense._id}/verify`)
+        .set('Authorization', `Bearer ${adminToken}`);
+      await request(app)
+        .patch(`/api/expenses/${exp2.body.expense._id}/verify`)
+        .set('Authorization', `Bearer ${adminToken}`);
 
       const res = await request(app).get(`/api/transparency/${driveId}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.categoryBreakdown).toBeDefined();
-      expect(res.body.categoryBreakdown.transport).toBe(3000);
-      expect(res.body.categoryBreakdown.equipment).toBeUndefined();
-    });
-
-    it('should return correct volunteer count (checked_in attendance)', async () => {
-      const bookRes = await request(app)
-        .post(`/api/drives/${driveId}/book`)
-        .set('Authorization', `Bearer ${userToken}`)
-        .send({ role: 'Cleaner' });
-
-      const today = new Date().toISOString().split('T')[0]!;
-      await Drive.updateOne({ _id: driveId }, { date: today, status: 'active' });
-
-      await request(app)
-        .post(`/api/drives/${driveId}/checkin`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ qrCode: bookRes.body.attendance.qrCode });
-
-      await request(app)
-        .post(`/api/drives/${driveId}/impact`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .field('wasteCollected', '50')
-        .field('areaCleaned', '200')
-        .field('workHours', '8')
-        .attach('beforePhotos', fixtures.pngPath)
-        .attach('afterPhotos', fixtures.pngPath);
-
-      const res = await request(app).get(`/api/transparency/${driveId}`);
-
-      expect(res.status).toBe(200);
-      expect(res.body.attendanceCount).toBe(1);
-    });
-
-    it('should return 404 for non-existent drive', async () => {
-      const fakeId = new mongoose.Types.ObjectId();
-      const res = await request(app).get(`/api/transparency/${fakeId}`);
-      expect(res.status).toBe(404);
+      expect(res.body.categoryBreakdown.misc).toBe(6000);
     });
   });
 });

@@ -1,4 +1,8 @@
+import mongoose from 'mongoose';
 import { Report, IReport, ReportStatus } from '../models/report.model';
+import { Drive } from '../models/drive.model';
+import { Impact } from '../models/impact.model';
+import { ActivityLog } from '../models/activityLog.model';
 import { BadRequestError, NotFoundError } from '../utils/errors';
 
 // ── Status lifecycle ───────────────────────────────────────────────────────
@@ -12,6 +16,7 @@ const VALID_TRANSITIONS: Record<ReportStatus, ReportStatus[]> = {
   verified: ['drive_created'],
   drive_created: ['cleaned'],
   cleaned: [], // terminal state
+  merged: [], // terminal state for merged duplicates
 };
 
 // ── Duplicate detection ────────────────────────────────────────────────────
@@ -87,6 +92,13 @@ export async function submitReport(input: SubmitReportInput): Promise<SubmitRepo
     existing.duplicates.push(dupReport._id);
     await existing.save();
 
+    await ActivityLog.create({
+      entityType: 'Report',
+      entityId: dupReport._id,
+      action: 'report_created',
+      performedBy: new mongoose.Types.ObjectId(createdBy),
+    });
+
     return {
       duplicate: true,
       existingReportId: existing._id.toString(),
@@ -103,6 +115,13 @@ export async function submitReport(input: SubmitReportInput): Promise<SubmitRepo
     createdBy,
   });
 
+  await ActivityLog.create({
+    entityType: 'Report',
+    entityId: report._id,
+    action: 'report_created',
+    performedBy: new mongoose.Types.ObjectId(createdBy),
+  });
+
   return { duplicate: false, report };
 }
 
@@ -114,7 +133,7 @@ export async function submitReport(input: SubmitReportInput): Promise<SubmitRepo
  * @throws NotFoundError if the report does not exist.
  * @throws BadRequestError if the report is not in "reported" status.
  */
-export async function verifyReport(reportId: string): Promise<IReport> {
+export async function verifyReport(reportId: string, performedBy: string): Promise<IReport> {
   const report = await Report.findById(reportId);
   if (!report) {
     throw new NotFoundError('Report not found');
@@ -128,6 +147,14 @@ export async function verifyReport(reportId: string): Promise<IReport> {
 
   report.status = 'verified';
   await report.save();
+
+  await ActivityLog.create({
+    entityType: 'Report',
+    entityId: report._id,
+    action: 'report_verified',
+    performedBy: new mongoose.Types.ObjectId(performedBy),
+  });
+
   return report;
 }
 
@@ -161,4 +188,89 @@ export async function transitionStatus(
   report.status = newStatus;
   await report.save();
   return report;
+}
+
+// ── Merge duplicate into primary ────────────────────────────────────────────
+
+/**
+ * Merge duplicate report into primary (admin only).
+ * Appends duplicate ID to primary.duplicates, sets duplicate.status = merged.
+ * Does NOT delete duplicate report.
+ */
+export async function mergeReports(
+  primaryReportId: string,
+  duplicateReportId: string,
+  performedBy: string,
+): Promise<IReport> {
+  if (primaryReportId === duplicateReportId) {
+    throw new BadRequestError('Cannot merge a report into itself');
+  }
+
+  const primaryObjectId = new mongoose.Types.ObjectId(primaryReportId);
+  const duplicateObjectId = new mongoose.Types.ObjectId(duplicateReportId);
+
+  const [primary, duplicate] = await Promise.all([
+    Report.findById(primaryObjectId),
+    Report.findById(duplicateObjectId),
+  ]);
+
+  if (!primary) {
+    throw new NotFoundError('Primary report not found');
+  }
+  if (!duplicate) {
+    throw new NotFoundError('Duplicate report not found');
+  }
+
+  if (primary.duplicates.some((id) => id.equals(duplicateObjectId))) {
+    throw new BadRequestError('Duplicate report is already merged into primary');
+  }
+
+  primary.duplicates.push(duplicateObjectId);
+  await primary.save();
+
+  duplicate.status = 'merged';
+  await duplicate.save();
+
+  await ActivityLog.create({
+    entityType: 'Report',
+    entityId: primary._id,
+    action: 'report_merged',
+    performedBy: new mongoose.Types.ObjectId(performedBy),
+  });
+
+  return primary;
+}
+
+// ── Report timeline ────────────────────────────────────────────────────────
+
+/**
+ * Get chronological timeline for a report.
+ * Aggregates ActivityLog entries: report_created, report_verified, drive_created,
+ * report_merged, impact_submitted (cleaned).
+ * Sort ascending by timestamp.
+ */
+export async function getReportTimeline(reportId: string) {
+  const reportObjectId = new mongoose.Types.ObjectId(reportId);
+
+  const report = await Report.findById(reportObjectId);
+  if (!report) {
+    throw new NotFoundError('Report not found');
+  }
+
+  const drive = await Drive.findOne({ reportId: reportObjectId });
+  const impact = drive ? await Impact.findOne({ driveId: drive._id }) : null;
+
+  const entityIds: { type: string; id: mongoose.Types.ObjectId }[] = [
+    { type: 'Report', id: reportObjectId },
+  ];
+  if (drive) entityIds.push({ type: 'Drive', id: drive._id });
+  if (impact) entityIds.push({ type: 'Impact', id: impact._id });
+
+  const logs = await ActivityLog.find({
+    $or: entityIds.map((e) => ({ entityType: e.type, entityId: e.id })),
+  })
+    .sort({ timestamp: 1 })
+    .lean();
+
+  return logs;
 }

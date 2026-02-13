@@ -5,6 +5,7 @@ import { upload } from '../config/upload';
 import { authenticate } from '../middleware/authenticate';
 import { authorize } from '../middleware/authorize';
 import { createReportSchema, updateStatusSchema } from '../validation/report.validation';
+import { mergeSchema } from '../validation/merge.validation';
 import * as reportService from '../services/report.service';
 import { BadRequestError } from '../utils/errors';
 import { env } from '../config/env';
@@ -105,8 +106,55 @@ router.patch(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const reportId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      const report = await reportService.verifyReport(reportId);
+      const report = await reportService.verifyReport(reportId, req.user!.userId);
       res.json({ report });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+// ── POST /api/reports/:reportId/merge — Admin merges duplicate into primary ─
+
+router.post(
+  '/:reportId/merge',
+  authenticate,
+  authorize(['admin']),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsed = mergeSchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw new BadRequestError(parsed.error.issues[0]?.message ?? 'Invalid input');
+      }
+
+      const reportId = Array.isArray(req.params.reportId)
+        ? req.params.reportId[0]
+        : req.params.reportId;
+
+      const report = await reportService.mergeReports(
+        reportId,
+        parsed.data.duplicateReportId,
+        req.user!.userId,
+      );
+      res.json({ report });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+// ── GET /api/reports/:reportId/timeline — Chronological activity for report ─
+
+router.get(
+  '/:reportId/timeline',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const reportId = Array.isArray(req.params.reportId)
+        ? req.params.reportId[0]
+        : req.params.reportId;
+
+      const timeline = await reportService.getReportTimeline(reportId);
+      res.json({ timeline });
     } catch (error) {
       next(error);
     }

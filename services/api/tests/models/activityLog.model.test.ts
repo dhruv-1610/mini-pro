@@ -61,6 +61,7 @@ describe('ActivityLog Model — Validation', () => {
       'booking_created',
       'donation_completed',
       'impact_submitted',
+      'report_merged',
     ] as const;
     for (const action of actions) {
       const log = new ActivityLog({

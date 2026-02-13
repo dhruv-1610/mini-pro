@@ -40,7 +40,7 @@ const expenseSchema = new Schema<IExpense>(
     amount: {
       type: Number,
       required: [true, 'Amount is required'],
-      min: [1, 'Amount must be at least 1 (paise)'],
+      min: [0, 'Amount cannot be negative'],
     },
     proofUrl: {
       type: String,

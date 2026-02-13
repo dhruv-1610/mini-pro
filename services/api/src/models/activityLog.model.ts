@@ -17,6 +17,7 @@ export const ACTIVITY_ACTIONS = [
   'booking_created',
   'donation_completed',
   'impact_submitted',
+  'report_merged',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

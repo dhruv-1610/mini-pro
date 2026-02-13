@@ -7,20 +7,20 @@ import { NotFoundError } from '../utils/errors';
 
 export interface TransparencyResult {
   driveId: string;
-  totalFunds: number;
-  expenseBreakdown: Record<string, number>;
+  moneyCollected: number;
+  totalVerifiedExpenses: number;
+  categoryBreakdown: Record<string, number>;
   photos: { before: string[]; after: string[] };
-  volunteerCount: number;
-  metrics: { wasteCollected: number; areaCleaned: number; workHours: number };
+  attendanceCount: number;
 }
 
 /**
- * Get transparency data for a drive using aggregation.
- * - totalFunds = drive.fundingRaised
- * - expenseBreakdown = verified expenses grouped by category
+ * Get transparency data for a drive using aggregation pipeline.
+ * - moneyCollected = drive.fundingRaised
+ * - totalVerifiedExpenses = sum of isVerified=true expenses
+ * - categoryBreakdown = verified expenses grouped by category
  * - photos = before + after from impact
- * - volunteerCount = count of attendance with status checked_in
- * - metrics = wasteCollected, areaCleaned, workHours from impact
+ * - attendanceCount = count of attendance with status checked_in
  */
 export async function getTransparency(driveId: string): Promise<TransparencyResult> {
   const driveObjectId = new mongoose.Types.ObjectId(driveId);
@@ -35,32 +35,34 @@ export async function getTransparency(driveId: string): Promise<TransparencyResu
     throw new NotFoundError('Impact not found for this drive');
   }
 
-  const [expenseAgg, volunteerCount] = await Promise.all([
+  const [expenseAgg, totalVerifiedResult, attendanceCount] = await Promise.all([
     Expense.aggregate<{ _id: string; total: number }>([
       { $match: { driveId: driveObjectId, isVerified: true } },
       { $group: { _id: '$category', total: { $sum: '$amount' } } },
     ]),
+    Expense.aggregate<{ total: number }>([
+      { $match: { driveId: driveObjectId, isVerified: true } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]),
     Attendance.countDocuments({ driveId: driveObjectId, status: 'checked_in' }),
   ]);
 
-  const expenseBreakdown: Record<string, number> = {};
+  const categoryBreakdown: Record<string, number> = {};
   for (const row of expenseAgg) {
-    expenseBreakdown[row._id] = row.total;
+    categoryBreakdown[row._id] = row.total;
   }
+
+  const totalVerifiedExpenses = totalVerifiedResult[0]?.total ?? 0;
 
   return {
     driveId: driveId.toString(),
-    totalFunds: drive.fundingRaised,
-    expenseBreakdown,
+    moneyCollected: drive.fundingRaised,
+    totalVerifiedExpenses,
+    categoryBreakdown,
     photos: {
       before: impact.beforePhotos ?? [],
       after: impact.afterPhotos ?? [],
     },
-    volunteerCount,
-    metrics: {
-      wasteCollected: impact.wasteCollected,
-      areaCleaned: impact.areaCleaned,
-      workHours: impact.workHours,
-    },
+    attendanceCount,
   };
 }

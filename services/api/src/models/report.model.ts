@@ -4,7 +4,7 @@ import { Schema, model, Document, Types } from 'mongoose';
 export const REPORT_SEVERITIES = ['low', 'medium', 'high'] as const;
 export type ReportSeverity = (typeof REPORT_SEVERITIES)[number];
 
-export const REPORT_STATUSES = ['reported', 'verified', 'drive_created', 'cleaned'] as const;
+export const REPORT_STATUSES = ['reported', 'verified', 'drive_created', 'cleaned', 'merged'] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
 // ── Interface ──────────────────────────────────────────────────────────────

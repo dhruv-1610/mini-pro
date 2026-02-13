@@ -76,10 +76,10 @@ describe('Expense Model — Validation', () => {
   });
 
   // ── Amount constraints ──────────────────────────────────────────────────
-  it('should reject amount less than 1 (paise)', () => {
+  it('should accept amount 0', () => {
     const data = { ...validExpenseData(), amount: 0 };
-    const err = new Expense(data).validateSync();
-    expect(err?.errors.amount).toBeDefined();
+    const expense = new Expense(data);
+    expect(expense.validateSync()).toBeUndefined();
   });
 
   it('should reject negative amount', () => {
