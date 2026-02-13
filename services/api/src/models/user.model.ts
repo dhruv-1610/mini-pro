@@ -1,7 +1,8 @@
 import { Schema, model, Document } from 'mongoose';
 
 // ── Constants ──────────────────────────────────────────────────────────────
-export const USER_ROLES = ['public', 'user', 'admin'] as const;
+/** Platform-level user roles. */
+export const USER_ROLES = ['public', 'user', 'organizer', 'admin'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 // ── Interface ──────────────────────────────────────────────────────────────
@@ -9,6 +10,8 @@ export interface IUser extends Document {
   email: string;
   passwordHash: string;
   role: UserRole;
+  /** True when admin has approved organizer account. Only relevant when role = organizer. */
+  organizerApproved: boolean;
   profile: {
     name: string;
     phone?: string;
@@ -40,9 +43,16 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: { values: USER_ROLES as unknown as string[], message: 'Role must be public, user, or admin' },
+      enum: {
+        values: USER_ROLES as unknown as string[],
+        message: 'Role must be public, user, organizer, or admin',
+      },
       default: 'public',
       required: true,
+    },
+    organizerApproved: {
+      type: Boolean,
+      default: false,
     },
     profile: {
       name: {
@@ -68,9 +78,8 @@ const userSchema = new Schema<IUser>(
 );
 
 // ── Indexes ────────────────────────────────────────────────────────────────
-// email unique index is created by `unique: true` above.
-// Explicit compound / additional indexes added here for clarity.
 userSchema.index({ role: 1 });
+userSchema.index({ organizerApproved: 1 });
 
 // ── Model ──────────────────────────────────────────────────────────────────
 export const User = model<IUser>('User', userSchema);

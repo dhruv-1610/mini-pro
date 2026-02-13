@@ -13,12 +13,16 @@ export type { IReport, ReportSeverity, ReportStatus } from './report.model';
 export { REPORT_SEVERITIES, REPORT_STATUSES } from './report.model';
 
 export { Drive } from './drive.model';
-export type { IDrive, DriveStatus, IRequiredRole } from './drive.model';
-export { DRIVE_STATUSES } from './drive.model';
+export type { IDrive, DriveStatus, IRequiredRole, DriveRole } from './drive.model';
+export { DRIVE_STATUSES, DRIVE_ROLES } from './drive.model';
 
 export { Donation } from './donation.model';
 export type { IDonation, DonationStatus } from './donation.model';
-export { DONATION_STATUSES } from './donation.model';
+export {
+  DONATION_STATUSES,
+  DONATION_MIN_AMOUNT_PAISE,
+  DONATION_BLOCKED_DRIVE_STATUSES,
+} from './donation.model';
 
 export { Attendance } from './attendance.model';
 export type { IAttendance, AttendanceStatus } from './attendance.model';
@@ -27,3 +31,10 @@ export { ATTENDANCE_STATUSES } from './attendance.model';
 export { Expense } from './expense.model';
 export type { IExpense, ExpenseCategory } from './expense.model';
 export { EXPENSE_CATEGORIES } from './expense.model';
+
+export { Impact } from './impact.model';
+export type { IImpact } from './impact.model';
+
+export { ActivityLog } from './activityLog.model';
+export type { IActivityLog, ActivityEntityType, ActivityAction } from './activityLog.model';
+export { ACTIVITY_ENTITY_TYPES, ACTIVITY_ACTIONS } from './activityLog.model';

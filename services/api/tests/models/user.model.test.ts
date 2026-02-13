@@ -23,13 +23,13 @@ describe('User Model — Validation', () => {
 
   // ── Required fields ─────────────────────────────────────────────────────
   it('should require email', () => {
-    const { email: _, ...data } = validUserData();
+    const { email: _e, ...data } = validUserData();
     const err = new User(data).validateSync();
     expect(err?.errors.email).toBeDefined();
   });
 
   it('should require passwordHash', () => {
-    const { passwordHash: _, ...data } = validUserData();
+    const { passwordHash: _p, ...data } = validUserData();
     const err = new User(data).validateSync();
     expect(err?.errors.passwordHash).toBeDefined();
   });
@@ -55,13 +55,13 @@ describe('User Model — Validation', () => {
 
   // ── Role enum ───────────────────────────────────────────────────────────
   it('should default role to "public"', () => {
-    const { role: _, ...data } = validUserData();
+    const { role: _r, ...data } = validUserData();
     const user = new User(data);
     expect(user.role).toBe('public');
   });
 
-  it('should accept valid roles: public, user, admin', () => {
-    for (const role of ['public', 'user', 'admin'] as const) {
+  it('should accept valid roles: public, user, organizer, admin', () => {
+    for (const role of ['public', 'user', 'organizer', 'admin'] as const) {
       const user = new User({ ...validUserData(), role });
       expect(user.validateSync()).toBeUndefined();
     }
@@ -71,6 +71,18 @@ describe('User Model — Validation', () => {
     const data = { ...validUserData(), role: 'superadmin' };
     const err = new User(data).validateSync();
     expect(err?.errors.role).toBeDefined();
+  });
+
+  // ── Organizer approval ──────────────────────────────────────────────────
+  it('should default organizerApproved to false', () => {
+    const user = new User(validUserData());
+    expect(user.organizerApproved).toBe(false);
+  });
+
+  it('should accept organizerApproved true', () => {
+    const user = new User({ ...validUserData(), role: 'organizer', organizerApproved: true });
+    expect(user.validateSync()).toBeUndefined();
+    expect(user.organizerApproved).toBe(true);
   });
 
   // ── Defaults ────────────────────────────────────────────────────────────

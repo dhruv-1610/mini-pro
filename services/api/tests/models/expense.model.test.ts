@@ -6,7 +6,7 @@ function validExpenseData(): Record<string, unknown> {
   return {
     driveId: new mongoose.Types.ObjectId(),
     category: 'equipment' as const,
-    amount: 1500, // in cents ($15.00)
+    amount: 1500, // in paise
     proofUrl: 'https://cdn.example.com/receipts/receipt-001.jpg',
   };
 }
@@ -21,27 +21,44 @@ describe('Expense Model — Validation', () => {
 
   // ── Required fields ─────────────────────────────────────────────────────
   it('should require driveId', () => {
-    const { driveId: _, ...data } = validExpenseData();
+    const { driveId: _d, ...data } = validExpenseData();
     const err = new Expense(data).validateSync();
     expect(err?.errors.driveId).toBeDefined();
   });
 
   it('should require category', () => {
-    const { category: _, ...data } = validExpenseData();
+    const { category: _c, ...data } = validExpenseData();
     const err = new Expense(data).validateSync();
     expect(err?.errors.category).toBeDefined();
   });
 
   it('should require amount', () => {
-    const { amount: _, ...data } = validExpenseData();
+    const { amount: _a, ...data } = validExpenseData();
     const err = new Expense(data).validateSync();
     expect(err?.errors.amount).toBeDefined();
   });
 
   it('should require proofUrl', () => {
-    const { proofUrl: _, ...data } = validExpenseData();
+    const { proofUrl: _p, ...data } = validExpenseData();
     const err = new Expense(data).validateSync();
     expect(err?.errors.proofUrl).toBeDefined();
+  });
+
+  // ── isVerified ──────────────────────────────────────────────────────────
+  it('should default isVerified to false', () => {
+    const expense = new Expense(validExpenseData());
+    expect(expense.isVerified).toBe(false);
+  });
+
+  it('should accept isVerified true', () => {
+    const expense = new Expense({
+      ...validExpenseData(),
+      isVerified: true,
+      verifiedBy: new mongoose.Types.ObjectId(),
+      verifiedAt: new Date(),
+    });
+    expect(expense.validateSync()).toBeUndefined();
+    expect(expense.isVerified).toBe(true);
   });
 
   // ── Category enum ──────────────────────────────────────────────────────
@@ -59,7 +76,7 @@ describe('Expense Model — Validation', () => {
   });
 
   // ── Amount constraints ──────────────────────────────────────────────────
-  it('should reject amount less than 1 (cent)', () => {
+  it('should reject amount less than 1 (paise)', () => {
     const data = { ...validExpenseData(), amount: 0 };
     const err = new Expense(data).validateSync();
     expect(err?.errors.amount).toBeDefined();

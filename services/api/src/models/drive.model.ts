@@ -4,11 +4,16 @@ import { Schema, model, Document, Types } from 'mongoose';
 export const DRIVE_STATUSES = ['planned', 'active', 'completed', 'cancelled'] as const;
 export type DriveStatus = (typeof DRIVE_STATUSES)[number];
 
+/** Drive-level role enum — user books ONE role per drive. */
+export const DRIVE_ROLES = ['Cleaner', 'Coordinator', 'Photographer', 'LogisticsHelper'] as const;
+export type DriveRole = (typeof DRIVE_ROLES)[number];
+
 // ── Sub-document interface ─────────────────────────────────────────────────
 export interface IRequiredRole {
-  role: string;
-  slots: number;
-  filled: number;
+  role: DriveRole;
+  capacity: number;
+  booked: number;
+  waitlist: number;
 }
 
 // ── Interface ──────────────────────────────────────────────────────────────
@@ -20,10 +25,11 @@ export interface IDrive extends Document {
   };
   date: Date;
   maxVolunteers: number;
-  /** Funding goal in smallest currency unit (cents for USD). */
+  /** Funding goal in smallest currency unit (paise for INR). */
   fundingGoal: number;
-  /** Funding raised so far in smallest currency unit. */
+  /** Funding raised so far in smallest currency unit. Updated ONLY after Stripe webhook success. */
   fundingRaised: number;
+  /** Admin defines at drive creation. maxVolunteers must equal sum of capacity. */
   requiredRoles: IRequiredRole[];
   status: DriveStatus;
   reportId: Types.ObjectId;
@@ -48,18 +54,26 @@ const requiredRoleSchema = new Schema<IRequiredRole>(
   {
     role: {
       type: String,
-      required: [true, 'Role name is required'],
-      trim: true,
+      required: [true, 'Role is required'],
+      enum: {
+        values: DRIVE_ROLES as unknown as string[],
+        message: 'Role must be Cleaner, Coordinator, Photographer, or LogisticsHelper',
+      },
     },
-    slots: {
+    capacity: {
       type: Number,
-      required: [true, 'Slot count is required'],
-      min: [1, 'Slots must be at least 1'],
+      required: [true, 'Capacity is required'],
+      min: [1, 'Capacity must be at least 1'],
     },
-    filled: {
+    booked: {
       type: Number,
       default: 0,
-      min: [0, 'Filled count cannot be negative'],
+      min: [0, 'Booked count cannot be negative'],
+    },
+    waitlist: {
+      type: Number,
+      default: 0,
+      min: [0, 'Waitlist count cannot be negative'],
     },
   },
   { _id: false },
@@ -109,7 +123,11 @@ const driveSchema = new Schema<IDrive>(
     },
     requiredRoles: {
       type: [requiredRoleSchema],
-      default: [],
+      required: [true, 'At least one required role must be defined at drive creation'],
+      validate: {
+        validator: (v: IRequiredRole[]): boolean => Array.isArray(v) && v.length >= 1,
+        message: 'At least one required role is required',
+      },
     },
     status: {
       type: String,
@@ -127,6 +145,19 @@ const driveSchema = new Schema<IDrive>(
     timestamps: true,
   },
 );
+
+// ── maxVolunteers must equal sum of role capacities ─────────────────────────
+driveSchema.path('requiredRoles').validate(function (roles: IRequiredRole[]) {
+  if (!roles || roles.length === 0) return true;
+  const sum = roles.reduce((acc, r) => acc + r.capacity, 0);
+  return this.maxVolunteers === sum;
+}, 'maxVolunteers must equal sum of role capacities');
+
+// ── booked cannot exceed capacity per role (no overbooking) ─────────────────
+driveSchema.path('requiredRoles').validate(function (roles: IRequiredRole[]) {
+  if (!roles || roles.length === 0) return true;
+  return roles.every((r) => (r.booked ?? 0) <= r.capacity);
+}, 'booked cannot exceed capacity for any role');
 
 // ── Indexes ────────────────────────────────────────────────────────────────
 driveSchema.index({ location: '2dsphere' });

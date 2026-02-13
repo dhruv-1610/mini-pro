@@ -20,6 +20,8 @@ import { Drive } from '../models/drive.model';
 import { Donation } from '../models/donation.model';
 import { Attendance } from '../models/attendance.model';
 import { Expense } from '../models/expense.model';
+import { Impact } from '../models/impact.model';
+import { ActivityLog } from '../models/activityLog.model';
 
 const models = [
   { name: 'User', model: User },
@@ -28,6 +30,8 @@ const models = [
   { name: 'Donation', model: Donation },
   { name: 'Attendance', model: Attendance },
   { name: 'Expense', model: Expense },
+  { name: 'Impact', model: Impact },
+  { name: 'ActivityLog', model: ActivityLog },
 ];
 
 async function ensureIndexes(): Promise<void> {

@@ -1,14 +1,20 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 // ── Constants ──────────────────────────────────────────────────────────────
-export const DONATION_STATUSES = ['pending', 'completed', 'failed', 'refunded'] as const;
+export const DONATION_STATUSES = ['pending', 'completed', 'refunded'] as const;
 export type DonationStatus = (typeof DONATION_STATUSES)[number];
+
+/** Minimum donation: ₹10 = 1000 paise (smallest currency unit). */
+export const DONATION_MIN_AMOUNT_PAISE = 1000;
+
+/** Drive statuses where donation is NOT allowed (cleaned/completed or cancelled). */
+export const DONATION_BLOCKED_DRIVE_STATUSES = ['completed', 'cancelled'] as const;
 
 // ── Interface ──────────────────────────────────────────────────────────────
 export interface IDonation extends Document {
   userId: Types.ObjectId;
   driveId: Types.ObjectId;
-  /** Amount in smallest currency unit (cents for USD). */
+  /** Amount in paise (smallest INR unit). Min ₹10 = 1000 paise. */
   amount: number;
   /** Stripe Payment Intent ID — unique per donation. */
   stripePaymentId: string;
@@ -34,7 +40,7 @@ const donationSchema = new Schema<IDonation>(
     amount: {
       type: Number,
       required: [true, 'Amount is required'],
-      min: [1, 'Amount must be at least 1 (cent)'],
+      min: [DONATION_MIN_AMOUNT_PAISE, 'Minimum donation is ₹10 (1000 paise)'],
     },
     stripePaymentId: {
       type: String,
@@ -59,7 +65,6 @@ const donationSchema = new Schema<IDonation>(
 // ── Indexes ────────────────────────────────────────────────────────────────
 donationSchema.index({ userId: 1 });
 donationSchema.index({ driveId: 1 });
-// stripePaymentId unique index is created by `unique: true` above.
 
 // ── Model ──────────────────────────────────────────────────────────────────
 export const Donation = model<IDonation>('Donation', donationSchema);
