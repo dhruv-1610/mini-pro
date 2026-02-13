@@ -9,6 +9,10 @@ export interface IImpact extends Document {
   areaCleaned: number;
   /** Total work hours. */
   workHours: number;
+  /** Before cleanup photo URLs. */
+  beforePhotos: string[];
+  /** After cleanup photo URLs. */
+  afterPhotos: string[];
   submittedBy?: Types.ObjectId;
   submittedAt?: Date;
   /** When true, admin can edit even after submission. */
@@ -41,6 +45,14 @@ const impactSchema = new Schema<IImpact>(
       required: [true, 'Work hours is required'],
       min: [0, 'Work hours cannot be negative'],
     },
+    beforePhotos: {
+      type: [String],
+      default: [],
+    },
+    afterPhotos: {
+      type: [String],
+      default: [],
+    },
     submittedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -57,9 +69,6 @@ const impactSchema = new Schema<IImpact>(
     timestamps: true,
   },
 );
-
-// ── Indexes ────────────────────────────────────────────────────────────────
-impactSchema.index({ driveId: 1 }, { unique: true });
 
 // ── Model ──────────────────────────────────────────────────────────────────
 export const Impact = model<IImpact>('Impact', impactSchema);
