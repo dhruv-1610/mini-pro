@@ -82,7 +82,7 @@ describe('Attendance Model — Validation', () => {
   });
 
   it('should accept valid status values', () => {
-    for (const status of ['booked', 'checked_in', 'cancelled'] as const) {
+    for (const status of ['booked', 'waitlisted', 'checked_in', 'cancelled'] as const) {
       const attendance = new Attendance({ ...validAttendanceData(), status, qrCode: validUuidV4() });
       expect(attendance.validateSync()).toBeUndefined();
     }

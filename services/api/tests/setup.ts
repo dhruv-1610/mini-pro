@@ -20,3 +20,5 @@ process.env.RATE_LIMIT_MAX = '1000';
 process.env.UPLOAD_DIR = './uploads-test';
 process.env.MAX_FILE_SIZE = '5242880';
 process.env.LOG_LEVEL = 'error';
+process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_mock';

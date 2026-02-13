@@ -80,6 +80,8 @@ const requiredRoleSchema = new Schema<IRequiredRole>(
 );
 
 // ── Schema ─────────────────────────────────────────────────────────────────
+
+
 const driveSchema = new Schema<IDrive>(
   {
     title: {
@@ -105,7 +107,14 @@ const driveSchema = new Schema<IDrive>(
     date: {
       type: Date,
       required: [true, 'Date is required'],
+      validate: {
+        validator: function (value: Date): boolean {
+          return value > new Date();
+        },
+        message: 'Drive date must be in the future',
+      },
     },
+
     maxVolunteers: {
       type: Number,
       required: [true, 'Maximum volunteers is required'],
@@ -153,7 +162,17 @@ driveSchema.path('requiredRoles').validate(function (roles: IRequiredRole[]) {
   return this.maxVolunteers === sum;
 }, 'maxVolunteers must equal sum of role capacities');
 
+// ── Prevent duplicate roles per drive ─────────────────────────────
+driveSchema.path('requiredRoles').validate(function (roles: IRequiredRole[]) {
+  if (!roles || roles.length === 0) return true;
+
+  const uniqueRoles = new Set(roles.map((r) => r.role));
+  return uniqueRoles.size === roles.length;
+}, 'Duplicate roles are not allowed in requiredRoles');
+
+
 // ── booked cannot exceed capacity per role (no overbooking) ─────────────────
+
 driveSchema.path('requiredRoles').validate(function (roles: IRequiredRole[]) {
   if (!roles || roles.length === 0) return true;
   return roles.every((r) => (r.booked ?? 0) <= r.capacity);

@@ -4,6 +4,7 @@ import { requestLogger } from './middleware/requestLogger';
 import { rateLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import routes from './routes';
+import stripeWebhookRouter from './routes/webhooks';
 
 /**
  * Express application instance.
@@ -15,6 +16,13 @@ const app = express();
 
 // ── Security ────────────────────────────────────────────────────────────────
 applySecurity(app);
+
+// ── Stripe webhook (raw body required for signature verification) ───────────
+app.use(
+  '/api/webhooks/stripe',
+  express.raw({ type: 'application/json' }),
+  stripeWebhookRouter,
+);
 
 // ── Body parsing ────────────────────────────────────────────────────────────
 app.use(express.json());
