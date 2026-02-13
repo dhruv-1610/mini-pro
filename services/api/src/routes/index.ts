@@ -7,6 +7,7 @@ import usersRouter from './users';
 import transparencyRouter from './transparency';
 import expensesRouter from './expenses';
 import mapRouter from './map';
+import leaderboardRouter from './leaderboard';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/api/users', usersRouter);
 router.use('/api/transparency', transparencyRouter);
 router.use('/api/expenses', expensesRouter);
 router.use('/api/map', mapRouter);
+router.use('/api/leaderboard', leaderboardRouter);
 
 export default router;

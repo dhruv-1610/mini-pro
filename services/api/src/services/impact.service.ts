@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import { Drive } from '../models/drive.model';
 import { Impact, IImpact } from '../models/impact.model';
 import { Report } from '../models/report.model';
+import { Attendance } from '../models/attendance.model';
+import { User } from '../models/user.model';
 import { ActivityLog } from '../models/activityLog.model';
 import { BadRequestError, ConflictError, NotFoundError } from '../utils/errors';
 
@@ -67,6 +69,17 @@ export async function submitImpact(input: SubmitImpactInput): Promise<IImpact> {
     action: 'impact_submitted',
     performedBy: input.submittedBy,
   });
+
+  const checkedInAttendances = await Attendance.find({
+    driveId: driveObjectId,
+    status: 'checked_in',
+  }).select('userId');
+  for (const att of checkedInAttendances) {
+    await User.updateOne(
+      { _id: att.userId },
+      { $inc: { 'stats.volunteerHours': input.workHours } },
+    );
+  }
 
   return impact;
 }

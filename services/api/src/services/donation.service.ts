@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import mongoose from 'mongoose';
 import { Drive } from '../models/drive.model';
 import { Donation } from '../models/donation.model';
+import { User } from '../models/user.model';
 import { ActivityLog } from '../models/activityLog.model';
 import { DONATION_BLOCKED_DRIVE_STATUSES } from '../models/donation.model';
 import { BadRequestError, NotFoundError } from '../utils/errors';
@@ -87,6 +88,11 @@ export async function handlePaymentIntentSucceeded(
   await Drive.updateOne(
     { _id: donation.driveId },
     { $inc: { fundingRaised: donation.amount } },
+  );
+
+  await User.updateOne(
+    { _id: donation.userId },
+    { $inc: { 'stats.donations': donation.amount } },
   );
 
   await ActivityLog.create({
