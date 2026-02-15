@@ -46,6 +46,17 @@ const envSchema = z.object({
   MAX_FILE_SIZE: z.coerce.number().int().positive().default(5_242_880),
 
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+
+  // Optional: SMTP for sending verification emails. If SMTP_HOST is not set, emails are skipped.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+
+  // Base URL of the frontend — used to build verification link in email.
+  FRONTEND_URL: z.string().default('http://localhost:5173'),
 });
 
 /** Inferred TypeScript type for validated environment. */

@@ -10,11 +10,12 @@ export interface MapPoint {
   data: MapReport | MapDrive | MapCleaned;
 }
 
+/** Wide default bbox (India) so drives/reports from most regions show on map. */
 const DEFAULT_BBOX = {
-  lngMin: 77.4,
-  lngMax: 77.8,
-  latMin: 12.8,
-  latMax: 13.2,
+  lngMin: 68,
+  lngMax: 97,
+  latMin: 8,
+  latMax: 35,
 };
 
 function bboxParams() {

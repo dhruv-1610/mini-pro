@@ -1,6 +1,8 @@
+import path from 'path';
 import express from 'express';
 import mongoSanitize from 'express-mongo-sanitize';
 import { applySecurity } from './middleware/security';
+import { env } from './config/env';
 
 /** Sanitize only req.body to avoid Mongo injection; skip req.query (Express 5 getter). */
 const sanitizeBodyOnly = (req: express.Request, _res: express.Response, next: express.NextFunction): void => {
@@ -32,6 +34,9 @@ app.use(
   express.raw({ type: 'application/json' }),
   stripeWebhookRouter,
 );
+
+// ── Serve uploaded files (report photos, etc.) ──────────────────────────────
+app.use('/uploads', express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)));
 
 // ── Body parsing ────────────────────────────────────────────────────────────
 app.use(express.json());

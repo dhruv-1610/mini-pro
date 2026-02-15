@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Navbar } from '../components/layout/Navbar';
 import { SidebarLayout, type SidebarNavItem } from '../components/layout/SidebarLayout';
+import { useAuthUser } from '../stores/authStore';
 import {
   UpcomingDrivesSection,
   DonationHistorySection,
@@ -40,6 +41,8 @@ function MapIcon(): React.ReactElement {
 
 export function DashboardPage(): React.ReactElement {
   const { data, loading } = useDashboardData();
+  const user = useAuthUser();
+  const displayName = user?.profile?.name || user?.email || 'User';
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)]">
@@ -54,7 +57,7 @@ export function DashboardPage(): React.ReactElement {
           >
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
-                Your dashboard
+                Welcome, {displayName}
               </h1>
               <p className="mt-1 text-stone-600">
                 Overview of your bookings, impact, and achievements.

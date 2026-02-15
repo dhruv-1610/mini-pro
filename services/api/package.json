@@ -13,7 +13,8 @@
     "test": "jest --runInBand",
     "audit": "npm audit",
     "audit:ci": "npm audit --audit-level=high",
-    "db:ensure-indexes": "ts-node src/scripts/ensure-indexes.ts"
+    "db:ensure-indexes": "ts-node src/scripts/ensure-indexes.ts",
+    "seed:test-drive": "ts-node -P tsconfig.json src/scripts/seed-test-drive.ts"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +30,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.1",
     "multer": "^2.0.2",
+    "nodemailer": "^8.0.1",
     "pdfkit": "^0.17.2",
     "stripe": "^20.3.1",
     "tslib": "^2.8.1",
@@ -43,6 +45,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.2.3",
+    "@types/nodemailer": "^7.0.9",
     "@types/pdfkit": "^0.17.5",
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.55.0",

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useIsAuthenticated, useAuthUser, useAuthStore } from '../../stores/authStore';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -21,6 +22,17 @@ const motionVariants = {
 export function Navbar(): React.ReactElement {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const isAuthenticated = useIsAuthenticated();
+  const user = useAuthUser();
+  const logout = useAuthStore((s) => s.logout);
+  const displayName = user?.profile?.name || user?.email || 'User';
+
+  const handleLogout = () => {
+    logout();
+    setMobileOpen(false);
+    navigate('/');
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -66,20 +78,37 @@ export function Navbar(): React.ReactElement {
           ))}
         </ul>
 
-        {/* Auth buttons (placeholder) */}
+        {/* Auth: when logged in show name; when not, show Login + Join */}
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            to="/login"
-            className="rounded-2xl px-4 py-2 text-sm font-medium text-stone-600 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-          >
-            Log in
-          </Link>
-          <Link
-            to="/register"
-            className="rounded-2xl bg-primary-700 px-4 py-2 text-sm font-medium text-white shadow-soft hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-          >
-            Join
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <span className="text-sm font-medium text-stone-600">
+                Logged in as {displayName}
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-2xl px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="rounded-2xl px-4 py-2 text-sm font-medium text-stone-600 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/register"
+                className="rounded-2xl bg-primary-700 px-4 py-2 text-sm font-medium text-white shadow-soft hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              >
+                Join
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -128,22 +157,39 @@ export function Navbar(): React.ReactElement {
                 </li>
               ))}
               <li className="mt-2 border-t border-stone-200 pt-2" role="none">
-                <Link
-                  to="/login"
-                  onClick={() => setMobileOpen(false)}
-                  className="block rounded-xl px-4 py-3 text-base font-medium text-stone-600"
-                  role="menuitem"
-                >
-                  Log in
-                </Link>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileOpen(false)}
-                  className="mt-1 block rounded-xl bg-primary-700 px-4 py-3 text-center text-base font-medium text-white"
-                  role="menuitem"
-                >
-                  Join
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <span className="block rounded-xl px-4 py-3 text-base font-medium text-stone-600">
+                      Logged in as {displayName}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="mt-1 block w-full rounded-xl px-4 py-3 text-left text-base font-medium text-stone-600 hover:bg-stone-100"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className="block rounded-xl px-4 py-3 text-base font-medium text-stone-600"
+                      role="menuitem"
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      to="/register"
+                      onClick={() => setMobileOpen(false)}
+                      className="mt-1 block rounded-xl bg-primary-700 px-4 py-3 text-center text-base font-medium text-white"
+                      role="menuitem"
+                    >
+                      Join
+                    </Link>
+                  </>
+                )}
               </li>
             </ul>
           </motion.div>

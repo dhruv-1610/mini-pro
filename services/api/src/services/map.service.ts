@@ -43,7 +43,7 @@ function buildGeoFilter(bbox: BoundingBox | null): object {
 export async function getReportedSpots(bbox: BoundingBox | null) {
   const filter = { status: 'reported', ...buildGeoFilter(bbox) };
   return Report.find(filter)
-    .select('location severity description createdAt status _id')
+    .select('location severity description createdAt status _id photoUrls')
     .lean();
 }
 
@@ -56,7 +56,7 @@ export async function getVerifiedSpots(bbox: BoundingBox | null) {
     ...buildGeoFilter(bbox),
   };
   return Report.find(filter)
-    .select('location severity description createdAt status _id')
+    .select('location severity description createdAt status _id photoUrls')
     .lean();
 }
 

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   api-lint-test-build:
@@ -42,7 +42,7 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test
+        run: npm test -- --coverage
         env:
           NODE_ENV: test
           MONGO_URI: mongodb://localhost:27017/cleanupcrew_test

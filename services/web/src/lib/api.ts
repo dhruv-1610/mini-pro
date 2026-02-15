@@ -7,6 +7,9 @@ const baseURL =
   import.meta.env.VITE_API_URL ??
   (import.meta.env.DEV ? '' : 'http://localhost:4000');
 
+/** Base URL for API (used e.g. for image src like /uploads/...). In dev with proxy, use explicit origin so images load. */
+export const apiBaseUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:4000' : '');
+
 export const api = axios.create({
   baseURL,
   timeout: 15000,
@@ -101,6 +104,7 @@ export interface MapReport {
   status: string;
   description?: string;
   createdAt?: string;
+  photoUrls?: string[];
 }
 
 export interface MapDrive {

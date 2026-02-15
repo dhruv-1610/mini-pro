@@ -13,6 +13,7 @@ import {
   ForbiddenError,
   BadRequestError,
 } from '../utils/errors';
+import { sendVerificationEmail } from './email.service';
 
 /** bcrypt cost factor — 12 rounds as required by specification. */
 const BCRYPT_ROUNDS = 12;
@@ -55,6 +56,17 @@ export async function registerUser(
   });
 
   const verificationToken = signVerificationToken(user._id.toString());
+
+  try {
+    await sendVerificationEmail(user.email, user.profile.name, verificationToken);
+  } catch (err) {
+    // User is already created; don't fail registration. Log so admin can see why email failed.
+    const logger = (await import('../config/logger')).logger;
+    logger.warn('Verification email could not be sent (registration still succeeded)', {
+      email: user.email,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 
   return { user, verificationToken };
 }

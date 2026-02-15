@@ -1,6 +1,8 @@
 # CleanupCrew
 
-Production-grade mono-repo for the CleanupCrew platform.
+[![CI](https://github.com/CleanUpCrew/MiniProj/actions/workflows/ci.yml/badge.svg)](https://github.com/CleanUpCrew/MiniProj/actions/workflows/ci.yml)
+
+Production-grade mono-repo for the CleanupCrew platform. CI runs lint, tests, coverage (≥80%), and `npm audit` (fails on high vulnerabilities).
 
 ## Architecture
 
@@ -78,6 +80,10 @@ CI fails if high or critical vulnerabilities are reported. Fix or suppress findi
 ## Environment Variables
 
 See [`.env.example`](.env.example) for all required variables.
+
+## Backup & Restore
+
+MongoDB backup script: `scripts/mongo-backup.sh`. Requires `MONGO_URI` in environment and [MongoDB Database Tools](https://www.mongodb.com/docs/database-tools/) (`mongodump`). Restore with `mongorestore`. See [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) for backup strategy, example cron, and restore steps.
 
 ## CI/CD
 

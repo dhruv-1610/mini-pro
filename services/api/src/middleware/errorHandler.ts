@@ -25,7 +25,7 @@ function sanitizeForLog(msg: string): string {
  */
 export function errorHandler(
   err: AppError,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
@@ -33,11 +33,15 @@ export function errorHandler(
   const message = err.isOperational ? err.message : 'Internal Server Error';
   const isProduction = process.env.NODE_ENV === 'production';
 
-  logger.error({
+  const logPayload: Record<string, unknown> = {
     message: isProduction ? sanitizeForLog(err.message) : err.message,
-    ...(isProduction ? {} : { stack: err.stack }),
     statusCode,
-  });
+    ...(req.requestId && { requestId: req.requestId }),
+  };
+  if (!isProduction && err.stack) {
+    logPayload.stack = err.stack;
+  }
+  logger.error(logPayload);
 
   res.status(statusCode).json({
     error: {

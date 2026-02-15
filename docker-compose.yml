@@ -1,5 +1,8 @@
 version: "3.8"
 
+# Default: docker-compose up — runs dev (api, web, mongo).
+# Production: docker-compose --profile prod up — runs api-prod, web-prod, mongo.
+
 services:
   mongo:
     image: mongo:7
@@ -28,16 +31,46 @@ services:
     volumes:
       - ./services/api/src:/app/src
 
+  api-prod:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      mongo:
+        condition: service_healthy
+    profiles:
+      - prod
+
   web:
     build:
       context: ./services/web
       dockerfile: Dockerfile
+      target: dev
     ports:
       - "5173:5173"
     depends_on:
       - api
     volumes:
       - ./services/web/src:/app/src
+
+  web-prod:
+    build:
+      context: ./services/web
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "80:80"
+    depends_on:
+      - api-prod
+    profiles:
+      - prod
 
 volumes:
   mongo_data:

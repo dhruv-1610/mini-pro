@@ -7,6 +7,7 @@ import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { LoadingSpinner } from '../components/ui';
 import { useMapPageData, type MapPoint, type MapPointType } from '../hooks/useMapPageData';
+import { apiBaseUrl } from '../lib/api';
 
 const DEFAULT_CENTER: [number, number] = [12.9716, 77.5946];
 const DEFAULT_ZOOM = 12;
@@ -70,6 +71,13 @@ function DetailPanel({ point, onClose }: { point: MapPoint; onClose: () => void 
       <div className="mt-3 flex-1 overflow-y-auto">
         {type === 'reported' || type === 'verified' ? (
           <div className="space-y-2">
+            {(data as { photoUrls?: string[] }).photoUrls?.[0] && (
+              <img
+                src={`${apiBaseUrl}${(data as { photoUrls: string[] }).photoUrls[0]}`}
+                alt="Report"
+                className="w-full rounded-lg object-cover max-h-48"
+              />
+            )}
             <p className="text-sm text-stone-600">
               {(data as { description?: string }).description ?? 'No description'}
             </p>
@@ -204,6 +212,14 @@ export function MapPage(): React.ReactElement {
         <div className="relative flex flex-1 flex-col">
           {/* Controls overlay */}
           <div className="absolute left-4 top-20 z-[1000] flex w-full max-w-sm flex-col gap-3 sm:top-24">
+            <div className="flex items-center gap-2">
+              <Link
+                to="/reports/new"
+                className="rounded-xl bg-primary-700 px-4 py-2.5 text-sm font-medium text-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              >
+                Report
+              </Link>
+            </div>
             <div className="flex gap-2 rounded-xl bg-white p-2 shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
               <input
                 type="search"
