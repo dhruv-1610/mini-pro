@@ -42,11 +42,23 @@ const storage = multer.diskStorage({
  * multipart stream is fully consumed (prevents ECONNRESET).
  * The route handler detects the rejection via `req.fileValidationError`.
  */
+/** Reject filenames that could be path traversal or unsafe. */
+function isSafeFilename(originalname: string): boolean {
+  const base = path.basename(originalname);
+  return base === originalname && !base.includes('..') && base.length > 0 && base.length <= 255;
+}
+
 function fileFilter(req: Request, file: Express.Multer.File, cb: FileFilterCallback): void {
+  if (!isSafeFilename(file.originalname)) {
+    (req as Request & { fileValidationError?: string }).fileValidationError =
+      'Invalid or unsafe filename';
+    cb(null, false);
+    return;
+  }
+
   const ext = path.extname(file.originalname).toLowerCase();
 
   if (!ALLOWED_MIME_TYPES.has(file.mimetype) || !ALLOWED_EXTENSIONS.has(ext)) {
-    // Store rejection reason so the route handler can return a proper 400
     (req as Request & { fileValidationError?: string }).fileValidationError =
       'Only image files (JPEG, PNG, GIF, WebP) are allowed';
     cb(null, false);

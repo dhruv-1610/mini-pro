@@ -1,3 +1,114 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/* ── CLEANUPCREW Design System Theme ───────────────────────────────────────── */
+@theme {
+  /* Primary: Deep green (#14532d type) */
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-200: #bbf7d0;
+  --color-primary-300: #86efac;
+  --color-primary-400: #4ade80;
+  --color-primary-500: #22c55e;
+  --color-primary-600: #16a34a;
+  --color-primary-700: #15803d;
+  --color-primary-800: #166534;
+  --color-primary-900: #14532d;
+  --color-primary-950: #052e16;
+
+  /* Semantic primary alias */
+  --color-primary: var(--color-primary-700);
+
+  /* Soft off-white background */
+  --color-background: #fafaf9;
+  --color-background-alt: #f5f5f4;
+
+  /* Hero gradient */
+  --color-hero-start: #f0fdf4;
+  --color-hero-end: #ecfdf5;
+
+  /* Soft shadows */
+  --shadow-soft: 0 2px 8px rgb(0 0 0 / 0.04);
+  --shadow-soft-md: 0 4px 12px rgb(0 0 0 / 0.06);
+  --shadow-soft-lg: 0 8px 24px rgb(0 0 0 / 0.08);
+  --shadow-card-hover: 0 12px 32px rgb(0 0 0 / 0.1);
+
+  /* 2xl rounded corners */
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+
+  /* Typography scale */
+  --font-display: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Transitions */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+
+  /* Custom animation: page fade-in */
+  --animate-fade-in: fade-in var(--duration-normal) var(--ease-smooth);
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Card hover elevation */
+  --animate-card-hover: card-hover var(--duration-normal) var(--ease-smooth);
+  @keyframes card-hover {
+    from {
+      transform: translateY(0);
+      box-shadow: var(--shadow-soft);
+    }
+    to {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+  }
+}
+
+/* ── Base Layer ────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    @apply scroll-smooth antialiased;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-background);
+    color: #1c1917;
+  }
+
+  /* DM Sans font */
+}
+
+/* ── Components ────────────────────────────────────────────────────────────── */
+@layer components {
+  /* Hero gradient section */
+  .hero-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--color-hero-start) 0%,
+      var(--color-hero-end) 50%,
+      var(--color-background) 100%
+    );
+  }
+
+  /* Page transition wrapper */
+  .page-transition {
+    animation: fade-in var(--duration-normal) var(--ease-smooth);
+  }
+
+  /* Leaflet custom marker - override default icon */
+  .custom-map-marker {
+    background: none !important;
+    border: none !important;
+  }
+  .location-picker-marker {
+    background: none !important;
+    border: none !important;
+  }
+}

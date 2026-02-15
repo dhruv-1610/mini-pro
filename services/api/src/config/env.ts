@@ -1,8 +1,19 @@
 import { z } from 'zod';
 
 /**
+ * Parse comma-separated ALLOWED_ORIGINS into trimmed non-empty array.
+ * Required at startup for strict CORS.
+ */
+function parseAllowedOrigins(val: string): string[] {
+  return val
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+}
+
+/**
  * Zod schema for required environment variables.
- * Validated at boot — fails fast if any variable is missing or invalid.
+ * Validated at boot — app crashes if any required variable is missing or invalid.
  */
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -20,10 +31,13 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(8, 'JWT_REFRESH_SECRET must be at least 8 characters'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
 
-  CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
+  ALLOWED_ORIGINS: z
+    .string()
+    .min(1, 'ALLOWED_ORIGINS is required (comma-separated list of origins)')
+    .transform(parseAllowedOrigins),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),

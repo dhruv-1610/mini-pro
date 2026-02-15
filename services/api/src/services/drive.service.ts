@@ -97,3 +97,17 @@ export async function getDriveById(driveId: string): Promise<IDrive> {
 export async function getActiveDrives(): Promise<IDrive[]> {
   return Drive.find({ status: { $in: ['planned', 'active'] } }).sort({ date: 1 });
 }
+
+// ── List drives (with optional status filter) ───────────────────────────────
+
+/**
+ * List drives with optional status filter.
+ * @param statuses - Optional array of statuses to include. Default: planned, active, completed.
+ */
+export async function listDrives(statuses?: string[]): Promise<IDrive[]> {
+  const filter =
+    statuses && statuses.length > 0
+      ? { status: { $in: statuses } }
+      : { status: { $in: ['planned', 'active', 'completed'] } };
+  return Drive.find(filter).sort({ date: 1 }).lean();
+}

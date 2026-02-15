@@ -63,6 +63,18 @@ cd services/api && npm run lint
 cd services/web && npm run lint
 ```
 
+## Security audit
+
+The API uses `npm audit` to check for known vulnerabilities:
+
+```bash
+cd services/api
+npm run audit          # report only
+npm run audit:ci      # exit with non-zero on high or critical (used in CI)
+```
+
+CI fails if high or critical vulnerabilities are reported. Fix or suppress findings before merging.
+
 ## Environment Variables
 
 See [`.env.example`](.env.example) for all required variables.
@@ -72,4 +84,5 @@ See [`.env.example`](.env.example) for all required variables.
 GitHub Actions runs on every push and PR to `main`:
 - Lint (api + web)
 - Test (api)
+- Audit (api; fails on high/critical vulnerabilities)
 - Build (api + web)

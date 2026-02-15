@@ -7,11 +7,20 @@ export interface AppError extends Error {
   isOperational?: boolean;
 }
 
+/** Redact token-like strings from messages so they are never logged. */
+function sanitizeForLog(msg: string): string {
+  return msg
+    .replace(/\bBearer\s+[^\s]+/gi, 'Bearer [REDACTED]')
+    .replace(/\bsk_[^\s]+/g, 'sk_[REDACTED]')
+    .replace(/\bwhsec_[^\s]+/g, 'whsec_[REDACTED]')
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT]');
+}
+
 /**
  * Global Express error-handling middleware.
  *
- * - Logs every error via Winston.
- * - Returns a sanitised JSON payload (stack only in development).
+ * - Production: no stack in response; logged message sanitized (no JWT/Stripe).
+ * - Development: stack in response and in logs.
  * - Must be registered LAST in the middleware chain (4-arg signature).
  */
 export function errorHandler(
@@ -22,17 +31,18 @@ export function errorHandler(
 ): void {
   const statusCode = err.statusCode ?? 500;
   const message = err.isOperational ? err.message : 'Internal Server Error';
+  const isProduction = process.env.NODE_ENV === 'production';
 
   logger.error({
-    message: err.message,
-    stack: err.stack,
+    message: isProduction ? sanitizeForLog(err.message) : err.message,
+    ...(isProduction ? {} : { stack: err.stack }),
     statusCode,
   });
 
   res.status(statusCode).json({
     error: {
       message,
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+      ...(!isProduction && err.stack && { stack: err.stack }),
     },
   });
 }

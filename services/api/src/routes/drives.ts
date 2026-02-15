@@ -291,6 +291,22 @@ router.post(
   },
 );
 
+// ── GET /api/drives — List drives with optional status filter ───────────────
+
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const statusParam = req.query.status;
+    const statuses =
+      typeof statusParam === 'string'
+        ? statusParam.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined;
+    const drives = await driveService.listDrives(statuses);
+    res.json({ drives });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ── GET /api/drives/active — Must be before /:id ────────────────────────────
 
 router.get('/active', async (_req: Request, res: Response, next: NextFunction) => {

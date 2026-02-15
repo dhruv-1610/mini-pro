@@ -47,8 +47,14 @@ jobs:
           NODE_ENV: test
           MONGO_URI: mongodb://localhost:27017/cleanupcrew_test
           JWT_SECRET: ci-test-secret-key
-          CORS_ORIGIN: http://localhost:5173
+          JWT_REFRESH_SECRET: ci-test-refresh-secret-key-min-8
+          ALLOWED_ORIGINS: http://localhost:5173
+          STRIPE_SECRET_KEY: sk_test_ci_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
           LOG_LEVEL: error
+
+      - name: Audit
+        run: npm run audit:ci
 
       - name: Build
         run: npm run build

@@ -43,7 +43,20 @@ function buildGeoFilter(bbox: BoundingBox | null): object {
 export async function getReportedSpots(bbox: BoundingBox | null) {
   const filter = { status: 'reported', ...buildGeoFilter(bbox) };
   return Report.find(filter)
-    .select('location severity createdAt status _id')
+    .select('location severity description createdAt status _id')
+    .lean();
+}
+
+/**
+ * Get verified spots (status = verified or drive_created).
+ */
+export async function getVerifiedSpots(bbox: BoundingBox | null) {
+  const filter = {
+    status: { $in: ['verified', 'drive_created'] },
+    ...buildGeoFilter(bbox),
+  };
+  return Report.find(filter)
+    .select('location severity description createdAt status _id')
     .lean();
 }
 
@@ -53,7 +66,7 @@ export async function getReportedSpots(bbox: BoundingBox | null) {
 export async function getActiveDrives(bbox: BoundingBox | null) {
   const filter = { status: { $in: ['planned', 'active'] }, ...buildGeoFilter(bbox) };
   return Drive.find(filter)
-    .select('location title date status _id')
+    .select('location title date status _id fundingGoal fundingRaised maxVolunteers requiredRoles')
     .lean();
 }
 

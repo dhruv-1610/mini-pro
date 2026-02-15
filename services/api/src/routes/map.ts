@@ -39,6 +39,17 @@ router.get('/drives', async (req: Request, res: Response, next: NextFunction) =>
   }
 });
 
+/** GET /api/map/verified — Verified spots (status = verified or drive_created). */
+router.get('/verified', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const bbox = parseBbox(req);
+    const reports = await mapService.getVerifiedSpots(bbox);
+    res.json({ reports });
+  } catch (error) {
+    next(error);
+  }
+});
+
 /** GET /api/map/cleaned — Cleaned locations (status = completed). */
 router.get('/cleaned', async (req: Request, res: Response, next: NextFunction) => {
   try {

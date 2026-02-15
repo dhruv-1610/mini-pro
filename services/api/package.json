@@ -11,6 +11,8 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "test": "jest --runInBand",
+    "audit": "npm audit",
+    "audit:ci": "npm audit --audit-level=high",
     "db:ensure-indexes": "ts-node src/scripts/ensure-indexes.ts"
   },
   "keywords": [],
@@ -21,6 +23,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
